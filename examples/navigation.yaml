@@ -1,0 +1,50 @@
+# 미션: 내비게이션 (Navigation) — A-L-E = 0.4 / 0.5 / 0.1 (지연·정확도 균형)
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: navigation
+  namespace: male-test
+  labels:
+    app: navigation
+    male.keti.dev/managed: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: navigation
+  template:
+    metadata:
+      labels:
+        app: navigation
+    spec:
+      containers:
+        - name: planner
+          image: <registry>/navigation:<tag>
+          resources:
+            requests:
+              cpu: "150m"
+              memory: "192Mi"
+---
+apiVersion: male.keti.dev/v1alpha1
+kind: MaleWorkload
+metadata:
+  name: navigation
+  namespace: male-test
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: navigation
+  mission: "navigation-path-planning"
+  importance:
+    accuracy: 0.4
+    latency: 0.5
+    energy: 0.1
+  mcSpec:
+    criticality: "A"
+    rtPeriod: 80
+    rtWcet: 25
+    rtDeadline: 80
+    missionId: "nav-mission-1"
+  allowPolicyOverride: true

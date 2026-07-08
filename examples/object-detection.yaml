@@ -1,0 +1,50 @@
+# 미션: 객체탐지 (Object Detection) — A-L-E = 0.3 / 0.5 / 0.2 (지연 우선)
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: object-detection
+  namespace: male-test
+  labels:
+    app: object-detection
+    male.keti.dev/managed: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: object-detection
+  template:
+    metadata:
+      labels:
+        app: object-detection
+    spec:
+      containers:
+        - name: detector
+          image: <registry>/object-detection:<tag>
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+---
+apiVersion: male.keti.dev/v1alpha1
+kind: MaleWorkload
+metadata:
+  name: object-detection
+  namespace: male-test
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: object-detection
+  mission: "object-detection"
+  importance:
+    accuracy: 0.3
+    latency: 0.5
+    energy: 0.2
+  mcSpec:
+    criticality: "A"
+    rtPeriod: 50
+    rtWcet: 20
+    rtDeadline: 50
+    missionId: "od-mission-1"
+  allowPolicyOverride: true

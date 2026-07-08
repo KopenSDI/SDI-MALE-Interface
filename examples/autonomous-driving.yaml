@@ -1,0 +1,51 @@
+# 미션: 자율주행 (Autonomous Driving) — A-L-E = 0.6 / 0.3 / 0.1 (정확도 우선)
+# 사용자 중요도 A(Best-Effort) → KETI 정책엔진이 C(Safety-Critical)로 재정의 예상
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: autonomous-vehicle
+  namespace: male-test
+  labels:
+    app: autonomous-vehicle
+    male.keti.dev/managed: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: autonomous-vehicle
+  template:
+    metadata:
+      labels:
+        app: autonomous-vehicle
+    spec:
+      containers:
+        - name: perception
+          image: <registry>/perception:<tag>
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+---
+apiVersion: male.keti.dev/v1alpha1
+kind: MaleWorkload
+metadata:
+  name: autonomous-vehicle
+  namespace: male-test
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: autonomous-vehicle
+  mission: "autonomous-vehicle-perception"
+  importance:
+    accuracy: 0.6
+    latency: 0.3
+    energy: 0.1
+  mcSpec:
+    criticality: "A"
+    rtPeriod: 100
+    rtWcet: 30
+    rtDeadline: 100
+    missionId: "av-mission-1"
+  allowPolicyOverride: true
