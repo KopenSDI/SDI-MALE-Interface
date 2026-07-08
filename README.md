@@ -25,7 +25,6 @@ API Server 뒤쪽(스케줄러가 노드를 어떻게 고르는지 등)은 KETI 
 - [docs/01-orchestration-flow.md](docs/01-orchestration-flow.md) — 워크로드가 배포되어 운영되기까지의 흐름과, 각 단계에서 MALE이 쓰이는 방식
 - [docs/02-etri-boundary.md](docs/02-etri-boundary.md) — 연동 경계(API Server)와 전달 방식
 - [docs/03-cr-argument-schema.md](docs/03-cr-argument-schema.md) — 전달하는 선언의 필드 규격 (MaleWorkload CR, 주석)
-- [docs/04-open-issues.md](docs/04-open-issues.md) — 아직 합의가 필요한 항목
 - [examples/](examples/) — 미션별 예시 워크로드
 
 ## 코드 (`src/`, `crds/`)

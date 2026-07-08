@@ -64,11 +64,3 @@ spec:
     - name: app
       image: <image>
 ```
-
-## 3. 값의 의미 (semantics) — 합의 필요
-
-| 항목 | 현재 구현 해석 | 협의 포인트 |
-| --- | --- | --- |
-| `accuracy/latency/energy` | **0~1 가중치**(중요도 비율) | 협의자료의 "목표 지표값"(BLEU=26, 1200ms, energy‑class)과 **다른 의미**. 어느 쪽으로 통일할지 → [04-open-issues](04-open-issues.md) |
-| 주석 네임스페이스 | `male.keti.dev/*` | 협의자료는 `male.sdi.dev/*` 사용 → **네이밍 불일치** 확정 필요 |
-| `score.top10` (Cloud/Edge 후보) | 구현 미확인 | 협의자료에 있음. 사용 여부·포맷 합의 필요 |
