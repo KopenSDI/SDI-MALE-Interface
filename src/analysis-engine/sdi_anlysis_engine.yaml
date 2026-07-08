@@ -1,0 +1,122 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sdi-analysis-engine
+  namespace: default
+  labels:
+    app: sdi-analysis-engine
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sdi-analysis-engine
+  template:
+    metadata:
+      labels:
+        app: sdi-analysis-engine
+        version: v1
+    spec:
+      containers:
+      - name: analysis-engine
+        image: ketidevit2/sdi-analysis-engine:v0.1.8
+        # 이미지의 엔트리포인트가 main.py라면 args만 있으면 됩니다.
+        args: ["--both", "--grpc-port", "50051", "--rest-port", "5000"]
+
+        ports:
+        - containerPort: 50051
+          name: grpc
+          protocol: TCP
+        - containerPort: 5000
+          name: http
+          protocol: TCP
+
+        env:
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        - name: BOT
+          value: "TURTLEBOT3-Burger-1"
+
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+
+        # 스케줄러가 REST 5000에 붙으므로 HTTP /health 사용
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+        volumeMounts:
+        - name: influxdb-config
+          mountPath: /app/influxdDB-Information.txt
+          subPath: influxdDB-Information.txt
+          readOnly: true
+        - name: influxdb-token
+          mountPath: /app/influxDB-TOKEN.txt
+          subPath: influxDB-TOKEN.txt
+          readOnly: true
+      volumes:
+      - name: influxdb-config
+        configMap:
+          name: influxdb-config
+      - name: influxdb-token
+        secret:
+          secretName: influxdb-token
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sdi-analysis-engine-service
+  namespace: default
+  labels:
+    app: sdi-analysis-engine
+spec:
+  type: NodePort   # 외부 노출 불필요하면 ClusterIP로 바꿔도 됩니다.
+  ports:
+  - name: http
+    port: 5000
+    targetPort: 5000
+    nodePort: 30050   # 필요 없으면 이 줄 제거(ClusterIP일 때도 제거)
+    protocol: TCP
+  - name: grpc
+    port: 50051
+    targetPort: 50051
+    nodePort: 30051
+    protocol: TCP
+  selector:
+    app: sdi-analysis-engine
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: influxdb-config
+  namespace: default
+data:
+  influxdDB-Information.txt: |
+    # InfluxDB Configuration
+    # URL: http://<influxdb-host>:32086
+    # ORG: keti
+    # BUCKET: turtlebot
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: influxdb-token
+  namespace: default
+type: Opaque
+data:
+  influxDB-TOKEN.txt: "<SET-VIA-SECRET-OR-ENV>"

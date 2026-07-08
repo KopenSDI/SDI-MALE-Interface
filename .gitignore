@@ -1,0 +1,27 @@
+# 시크릿 / 자격증명 (절대 커밋 금지)
+*.key
+*.pem
+*.crt
+*.p12
+*-token.txt
+*TOKEN*.txt
+.env
+*.env
+secrets.*
+
+# 파이썬 가상환경 / 캐시
+**/analysis-engine-env/
+**/*-env/
+**/site-packages/
+__pycache__/
+*.py[cod]
+
+# Go 빌드 산출물 / vendor
+**/bin/
+**/vendor/
+
+# 백업 / 임시
+*.bak
+*.tmp
+*.swp
+*~

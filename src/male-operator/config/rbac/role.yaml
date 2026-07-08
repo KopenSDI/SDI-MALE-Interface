@@ -1,0 +1,109 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: manager-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  - statefulsets
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - male.keti.dev
+  resources:
+  - malepolicies
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - male.keti.dev
+  resources:
+  - malepolicies/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - male.keti.dev
+  resources:
+  - malepolicies/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - male.keti.dev
+  resources:
+  - maleworkloads
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - male.keti.dev
+  resources:
+  - maleworkloads/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - male.keti.dev
+  resources:
+  - maleworkloads/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - scheduling.k8s.io
+  resources:
+  - priorityclasses
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch

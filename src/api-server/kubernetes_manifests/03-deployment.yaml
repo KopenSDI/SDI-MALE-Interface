@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sdi-manifest-bridge-deployment
+  namespace: sdi-manifest-bridge
+  labels:
+    app: sdi-manifest-bridge
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sdi-manifest-bridge
+  template:
+    metadata:
+      labels:
+        app: sdi-manifest-bridge
+    spec:
+      serviceAccountName: sdi-manifest-bridge-sa
+      containers:
+        - name: sdi-manifest-bridge
+          # 중요: 이 이미지는 CI/CD 파이프라인을 통해 빌드하고 푸시한 이미지로 교체해야 합니다.
+          image: ketidevit2/sdi-manifest-bridge:v0.2.9
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          env:
+            - name: POD_TEMPLATE_PATH
+              value: /etc/config/pod-template.yaml
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/config
+      volumes:
+        - name: config-volume
+          configMap:
+            name: sdi-manifest-bridge-cm

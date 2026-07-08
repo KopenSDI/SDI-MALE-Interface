@@ -1,0 +1,19 @@
+# 웹 프레임워크 (FastAPI)
+fastapi==0.115.0
+uvicorn==0.30.6
+
+# (선택) Flask가 실제로 안 쓰이면 아래 2줄은 지워도 됩니다
+Flask==2.3.3
+flask-cors==4.0.0
+
+influxdb-client==1.38.0
+Werkzeug==2.3.7
+
+# gRPC & Protobuf - 한 곳에서만 버전 고정
+grpcio==1.62.1
+grpcio-tools==1.62.1
+protobuf==4.25.1
+
+PyYAML==6.0.1
+etcd3==0.12.0
+kubernetes==29.0.0

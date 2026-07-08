@@ -1,0 +1,5 @@
+InfluxDB 구성 정보
+버킷이름 :  turtlebot
+측정치 : battery
+태그 : bot -> 터틀봇 호스트 이름
+필드 : 단위(wh)

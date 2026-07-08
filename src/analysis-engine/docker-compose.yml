@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  analysis-engine:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: sdi-analysis-engine:latest
+    container_name: sdi-analysis-engine
+    ports:
+      - "50051:50051"  # gRPC port
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      # Mount config files if needed
+      - ./influxdDB-Information.txt:/app/influxdDB-Information.txt:ro
+      - ./influxDB-TOKEN.txt:/app/influxDB-TOKEN.txt:ro
+    restart: unless-stopped
+    networks:
+      - sdi-network
+    command: ["--grpc", "--port", "50051"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import grpc; import analysis_service_pb2_grpc; channel = grpc.insecure_channel('localhost:50051'); stub = analysis_service_pb2_grpc.AnalysisServiceStub(channel); channel.close()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Add InfluxDB if not running externally
+  # influxdb:
+  #   image: influxdb:2.7
+  #   container_name: sdi-influxdb
+  #   ports:
+  #     - "8086:8086"
+  #   environment:
+  #     - DOCKER_INFLUXDB_INIT_MODE=setup
+  #     - DOCKER_INFLUXDB_INIT_USERNAME=admin
+  #     - DOCKER_INFLUXDB_INIT_PASSWORD=password
+  #     - DOCKER_INFLUXDB_INIT_ORG=keti
+  #     - DOCKER_INFLUXDB_INIT_BUCKET=turtlebot
+  #   volumes:
+  #     - influxdb-data:/var/lib/influxdb2
+  #   networks:
+  #     - sdi-network
+
+networks:
+  sdi-network:
+    driver: bridge
+
+volumes:
+  influxdb-data:
+
+
+
+
+
+
+
+
+
+
+

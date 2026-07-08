@@ -1,0 +1,296 @@
+#!/bin/bash
+
+# SDI Analysis Engine Kubernetes Pod Deployment Script
+# Usage: ./pod-deploy.sh [deploy|delete|restart|logs|status|build|exec]
+
+set -e
+
+APP_NAME="sdi-analysis-engine"
+DOCKER_REGISTRY="ketidevit2"
+IMAGE_BASE="sdi-analysis-engine"
+VERSION="v0.1.8"
+IMAGE_NAME="${DOCKER_REGISTRY}/${IMAGE_BASE}:${VERSION}"
+NAMESPACE="default"
+DEPLOYMENT_FILE="sdi_anlysis_engine.yaml"
+
+function usage() {
+    echo "사용법: $0 [deploy|delete|restart|logs|status|build|push|update-version|full-deploy|exec|port-forward]"
+    echo ""
+    echo "현재 설정:"
+    echo "  이미지: $IMAGE_NAME"
+    echo "  배포 파일: $DEPLOYMENT_FILE"
+    echo ""
+    echo "명령어:"
+    echo "  deploy         - 파드 배포 (kubectl apply만)"
+    echo "  full-deploy    - 전체 배포 (빌드 + 푸시 + 버전업데이트 + 배포)"
+    echo "  delete         - 파드 삭제"
+    echo "  restart        - 파드 재시작"
+    echo "  logs           - 파드 로그 확인 (실시간)"
+    echo "  status         - 파드 상태 확인"
+    echo "  build          - 도커 이미지만 빌드"
+    echo "  push           - 도커 이미지 푸시 (빌드 포함)"
+    echo "  update-version - YAML 파일의 이미지 버전 업데이트"
+    echo "  exec           - 파드에 접속"
+    echo "  port-forward   - 로컬 포트 포워딩 (50051:50051)"
+    echo "  describe       - 파드 상세 정보"
+    echo ""
+    echo "새로운 etcd 분석 기능:"
+    echo "  • 일반 모드: InfluxDB + etcd 통합 모니터링"
+    echo "  • etcd 전용: docker run -e ETCD_HOST=your-etcd $IMAGE_NAME --etcd-monitor"
+    echo "  • 테스트: docker run $IMAGE_NAME --test"
+}
+
+function build_image() {
+    echo "🔨 Docker 이미지 빌드 중 (캐시 없이)..."
+    echo "   이미지: $IMAGE_NAME"
+    
+    # 기존 이미지 삭제 (있다면)
+    echo "🗑️  기존 이미지 삭제 중..."
+    docker rmi -f $IMAGE_NAME 2>/dev/null || true
+    
+    # 빌드 캐시 정리
+    echo "🧹 빌드 캐시 정리 중..."
+    docker builder prune -f
+    
+    # 캐시 없이 빌드
+    echo "🔨 캐시 없이 새로 빌드 중..."
+    docker build --no-cache --pull -t $IMAGE_NAME .
+    echo "✅ 이미지 빌드 완료: $IMAGE_NAME"
+}
+
+function push_image() {
+    echo "📤 Docker 이미지 푸시 중..."
+    
+    # 먼저 빌드
+    build_image
+    
+    # Docker Hub에 푸시
+    echo "🚀 Docker Hub에 이미지 푸시 중..."
+    echo "   이미지: $IMAGE_NAME"
+    docker push $IMAGE_NAME
+    echo "✅ 이미지 푸시 완료!"
+}
+
+function update_yaml_version() {
+    echo "📝 YAML 파일 버전 업데이트 중..."
+    echo "   파일: $DEPLOYMENT_FILE"
+    echo "   이미지: $IMAGE_NAME"
+    
+    if [ ! -f "$DEPLOYMENT_FILE" ]; then
+        echo "❌ 배포 파일을 찾을 수 없습니다: $DEPLOYMENT_FILE"
+        exit 1
+    fi
+    
+    # sed를 사용해서 이미지 버전 업데이트
+    sed -i.bak "s|image: ${DOCKER_REGISTRY}/${IMAGE_BASE}:.*|image: ${IMAGE_NAME}|g" $DEPLOYMENT_FILE
+    
+    echo "✅ YAML 파일 업데이트 완료!"
+    echo "   백업 파일: ${DEPLOYMENT_FILE}.bak"
+    
+    # 변경사항 확인
+    echo "📋 변경된 이미지 정보:"
+    grep "image: ${DOCKER_REGISTRY}/${IMAGE_BASE}" $DEPLOYMENT_FILE || echo "   이미지 라인을 찾을 수 없습니다."
+}
+
+function full_deploy() {
+    echo "🚀 SDI Analysis Engine 전체 배포 시작..."
+    echo "   버전: $VERSION"
+    echo "   이미지: $IMAGE_NAME"
+    echo ""
+    
+    # 0. 캐시 완전 정리
+    echo "=== 0단계: 캐시 및 기존 리소스 정리 ==="
+    echo "🧹 Docker 시스템 정리 중..."
+    docker system prune -af || true
+    echo "🗑️  기존 이미지 삭제 중..."
+    docker rmi -f $IMAGE_NAME 2>/dev/null || true
+    echo ""
+    
+    # 1. Docker 이미지 빌드 및 푸시
+    echo "=== 1단계: Docker 이미지 빌드 & 푸시 ==="
+    push_image
+    echo ""
+    
+    # 2. YAML 파일 버전 업데이트
+    echo "=== 2단계: YAML 파일 버전 업데이트 ==="
+    update_yaml_version
+    echo ""
+    
+    # 3. Kubernetes 배포
+    echo "=== 3단계: Kubernetes 배포 ==="
+    deploy_pod
+    
+    echo ""
+    echo "🎉 전체 배포 완료!"
+    echo "   이미지: $IMAGE_NAME"
+    echo "   배포 파일: $DEPLOYMENT_FILE"
+}
+
+function deploy_pod() {
+    echo "🚀 Kubernetes에 파드 배포 중..."
+    echo "   배포 파일: $DEPLOYMENT_FILE"
+    
+    # 배포 파일 존재 확인
+    if [ ! -f "$DEPLOYMENT_FILE" ]; then
+        echo "❌ 배포 파일을 찾을 수 없습니다: $DEPLOYMENT_FILE"
+        exit 1
+    fi
+    
+    # 기존 배포 삭제 (있다면)
+    echo "🗑️  기존 리소스 정리 중..."
+    kubectl delete -f $DEPLOYMENT_FILE --ignore-not-found=true
+    echo "⏳ 기존 리소스 정리 대기 중..."
+    sleep 5
+    
+    # 새 배포 생성
+    echo "📦 새 리소스 배포 중..."
+    kubectl apply -f $DEPLOYMENT_FILE
+    
+    echo "⏳ 파드 시작 대기 중..."
+    kubectl wait --for=condition=ready pod -l app=$APP_NAME --timeout=120s
+    
+    echo "✅ 파드 배포 완료!"
+    echo ""
+    show_status
+    echo ""
+    echo "📊 서비스 접속 정보:"
+    echo "   - gRPC: localhost:30051 (NodePort)"
+    echo "   - 포트 포워딩: ./pod-deploy.sh port-forward"
+}
+
+function delete_pod() {
+    echo "🛑 SDI Analysis Engine 파드 삭제 중..."
+    kubectl delete -f $DEPLOYMENT_FILE --ignore-not-found=true
+    echo "✅ 파드 삭제 완료!"
+}
+
+function restart_pod() {
+    echo "🔄 SDI Analysis Engine 파드 재시작 중..."
+    
+    # 기존 파드 완전 삭제
+    echo "🗑️  기존 파드 삭제 중..."
+    kubectl delete -f $DEPLOYMENT_FILE --ignore-not-found=true
+    
+    # 잠시 대기
+    echo "⏳ 파드 삭제 대기 중..."
+    sleep 10
+    
+    # 새로 배포
+    echo "📦 새 파드 배포 중..."
+    kubectl apply -f $DEPLOYMENT_FILE
+    
+    # 파드 준비 대기
+    echo "⏳ 파드 준비 대기 중..."
+    kubectl wait --for=condition=ready pod -l app=$APP_NAME --timeout=120s
+    
+    echo "✅ 파드 재시작 완료!"
+}
+
+function show_logs() {
+    echo "📋 파드 로그 (실시간):"
+    echo "   Ctrl+C로 종료"
+    echo ""
+    kubectl logs -f -l app=$APP_NAME -n $NAMESPACE --tail=50
+}
+
+function show_status() {
+    echo "📊 파드 상태:"
+    kubectl get pods -l app=$APP_NAME -n $NAMESPACE -o wide
+    echo ""
+    echo "📊 서비스 상태:"
+    kubectl get svc -l app=$APP_NAME -n $NAMESPACE
+    echo ""
+    echo "📊 배포 상태:"
+    kubectl get deployment $APP_NAME -n $NAMESPACE
+}
+
+function exec_pod() {
+    POD_NAME=$(kubectl get pods -l app=$APP_NAME -n $NAMESPACE -o jsonpath='{.items[0].metadata.name}')
+    if [ -z "$POD_NAME" ]; then
+        echo "❌ 실행 중인 파드를 찾을 수 없습니다."
+        exit 1
+    fi
+    
+    echo "🔗 파드에 접속 중: $POD_NAME"
+    kubectl exec -it $POD_NAME -n $NAMESPACE -- /bin/bash
+}
+
+function port_forward() {
+    POD_NAME=$(kubectl get pods -l app=$APP_NAME -n $NAMESPACE -o jsonpath='{.items[0].metadata.name}')
+    if [ -z "$POD_NAME" ]; then
+        echo "❌ 실행 중인 파드를 찾을 수 없습니다."
+        exit 1
+    fi
+    
+    echo "🌐 포트 포워딩 시작: localhost:50051 -> $POD_NAME:50051"
+    echo "   Ctrl+C로 종료"
+    kubectl port-forward $POD_NAME 50051:50051 -n $NAMESPACE
+}
+
+function describe_pod() {
+    POD_NAME=$(kubectl get pods -l app=$APP_NAME -n $NAMESPACE -o jsonpath='{.items[0].metadata.name}')
+    if [ -z "$POD_NAME" ]; then
+        echo "❌ 실행 중인 파드를 찾을 수 없습니다."
+        exit 1
+    fi
+    
+    echo "📋 파드 상세 정보: $POD_NAME"
+    kubectl describe pod $POD_NAME -n $NAMESPACE
+}
+
+# kubectl 설치 확인
+if ! command -v kubectl &> /dev/null; then
+    echo "❌ kubectl이 설치되어 있지 않습니다."
+    echo "   쿠버네티스 클러스터에 접근하려면 kubectl이 필요합니다."
+    exit 1
+fi
+
+# 쿠버네티스 클러스터 연결 확인
+if ! kubectl cluster-info &> /dev/null; then
+    echo "❌ 쿠버네티스 클러스터에 연결할 수 없습니다."
+    echo "   kubectl config를 확인해주세요."
+    exit 1
+fi
+
+case "${1:-full-deploy}" in
+    deploy)
+        deploy_pod
+        ;;
+    full-deploy)
+        full_deploy
+        ;;
+    delete)
+        delete_pod
+        ;;
+    restart)
+        restart_pod
+        ;;
+    logs)
+        show_logs
+        ;;
+    status)
+        show_status
+        ;;
+    build)
+        build_image
+        ;;
+    push)
+        push_image
+        ;;
+    update-version)
+        update_yaml_version
+        ;;
+    exec)
+        exec_pod
+        ;;
+    port-forward)
+        port_forward
+        ;;
+    describe)
+        describe_pod
+        ;;
+    *)
+        usage
+        exit 1
+        ;;
+esac

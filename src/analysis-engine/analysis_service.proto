@@ -1,0 +1,546 @@
+syntax = "proto3";
+
+package analysis;
+
+// 분석 서비스 정의
+service AnalysisService {
+    // 기존 모니터링 서비스들
+    rpc CreateTurtlebot(CreateTurtlebotRequest) returns (CreateTurtlebotResponse);
+    rpc GetDeviceStatus(GetDeviceStatusRequest) returns (GetDeviceStatusResponse);
+    rpc UpdateFromInflux(UpdateFromInfluxRequest) returns (UpdateFromInfluxResponse);
+    rpc GetAllDevices(GetAllDevicesRequest) returns (GetAllDevicesResponse);
+    rpc GetBatteryStatus(GetBatteryStatusRequest) returns (GetBatteryStatusResponse);
+    rpc EmergencyStop(EmergencyStopRequest) returns (EmergencyStopResponse);
+    
+    // 새로운 분석 및 평가 서비스들
+    rpc AnalyzeMaleMission(AnalyzeMaleMissionRequest) returns (AnalyzeMaleMissionResponse);
+    rpc AnalyzeAccuracy(AnalyzeAccuracyRequest) returns (AnalyzeAccuracyResponse);
+    rpc AnalyzeLatency(AnalyzeLatencyRequest) returns (AnalyzeLatencyResponse);
+    rpc GetDeviceScore(GetDeviceScoreRequest) returns (GetDeviceScoreResponse);
+    rpc GetFleetAnalysis(GetFleetAnalysisRequest) returns (GetFleetAnalysisResponse);
+    rpc AnalyzeDevice(AnalyzeDeviceRequest) returns (AnalyzeDeviceResponse);
+    
+    // etcd 기반 Pod 분석 서비스들
+    rpc SyncPodsFromEtcd(SyncPodsFromEtcdRequest) returns (SyncPodsFromEtcdResponse);
+    rpc GetEtcdStatus(GetEtcdStatusRequest) returns (GetEtcdStatusResponse);
+    rpc CompareEtcdVsK8s(CompareEtcdVsK8sRequest) returns (CompareEtcdVsK8sResponse);
+    rpc AnalyzeEtcdPodsPerformance(AnalyzeEtcdPodsPerformanceRequest) returns (AnalyzeEtcdPodsPerformanceResponse);
+    rpc GetPodSummary(GetPodSummaryRequest) returns (GetPodSummaryResponse);
+    rpc AnalyzePodData(AnalyzePodDataRequest) returns (AnalyzePodDataResponse);
+    rpc GetPodsByServiceType(GetPodsByServiceTypeRequest) returns (GetPodsByServiceTypeResponse);
+
+    // MALE Weight 관련 서비스들
+    rpc GetALEWeight(GetALEWeightRequest) returns (GetALEWeightResponse);
+    rpc SetALEWeight(SetALEWeightRequest) returns (SetALEWeightResponse);
+    rpc CalculateWeightedScore(CalculateWeightedScoreRequest) returns (CalculateWeightedScoreResponse);
+}
+
+// 요청 메시지들
+message CreateTurtlebotRequest {
+    string device_id = 1;
+    string model = 2;
+    string location = 3;
+}
+
+message GetDeviceStatusRequest {
+    string device_id = 1;
+}
+
+message UpdateFromInfluxRequest {
+    string device_id = 1;
+    string lookback = 2;  // 예: "-30m"
+}
+
+message AnalyzeDeviceRequest {
+    string device_id = 1;
+}
+
+message GetFleetAnalysisRequest {
+    // 플릿 전체 분석이므로 특별한 파라미터 필요 없음
+}
+
+message GetAllDevicesRequest {
+    // 모든 디바이스 조회이므로 특별한 파라미터 필요 없음
+}
+
+message GetBatteryStatusRequest {
+    string device_id = 1;
+}
+
+message EmergencyStopRequest {
+    string device_id = 1;
+    bool emergency = 2;
+}
+
+// 응답 메시지들
+message CreateTurtlebotResponse {
+    bool success = 1;
+    string message = 2;
+    DeviceInfo device_info = 3;
+}
+
+message GetDeviceStatusResponse {
+    bool success = 1;
+    string message = 2;
+    DeviceStatus status = 3;
+}
+
+message UpdateFromInfluxResponse {
+    bool success = 1;
+    string message = 2;
+    DeviceStatus updated_status = 3;
+}
+
+message AnalyzeDeviceResponse {
+    bool success = 1;
+    string message = 2;
+    DeviceAnalysis analysis = 3;
+}
+
+message GetFleetAnalysisResponse {
+    bool success = 1;
+    string message = 2;
+    FleetAnalysis fleet_analysis = 3;
+}
+
+message GetAllDevicesResponse {
+    bool success = 1;
+    string message = 2;
+    repeated DeviceInfo devices = 3;
+}
+
+message GetBatteryStatusResponse {
+    bool success = 1;
+    string message = 2;
+    BatteryStatus battery_status = 3;
+}
+
+message EmergencyStopResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+// 데이터 구조들
+message DeviceInfo {
+    string device_id = 1;
+    string device_type = 2;
+    string model = 3;
+    string location = 4;
+    string status = 5;
+    string last_updated = 6;
+}
+
+message DeviceStatus {
+    string device_id = 1;
+    string status = 2;
+    double battery_level = 3;
+    double battery_wh = 4;
+    string location = 5;
+    string last_updated = 6;
+    map<string, string> additional_data = 7;
+}
+
+message DeviceAnalysis {
+    string device_id = 1;
+    double performance_score = 2;
+    double efficiency_rating = 3;
+    double battery_health = 4;
+    string analysis_summary = 5;
+    repeated AnalysisMetric metrics = 6;
+    string timestamp = 7;
+}
+
+message FleetAnalysis {
+    int32 total_devices = 1;
+    int32 active_devices = 2;
+    double average_performance = 3;
+    double average_battery_health = 4;
+    repeated DeviceAnalysis device_analyses = 5;
+    string timestamp = 6;
+}
+
+message BatteryStatus {
+    string device_id = 1;
+    double battery_level = 2;
+    double battery_wh = 3;
+    double estimated_runtime = 4;
+    string health_status = 5;
+    string last_updated = 6;
+}
+
+message AnalysisMetric {
+    string metric_name = 1;
+    double value = 2;
+    string unit = 3;
+    string description = 4;
+}
+
+// MALE Mission 분석 관련 메시지들
+message AnalyzeMaleMissionRequest {
+    string device_id = 1;
+    string mission_type = 2; // "patrol", "surveillance", "transport" 등
+    string time_range = 3;   // "-1h", "-24h" 등
+}
+
+message AnalyzeMaleMissionResponse {
+    bool success = 1;
+    string message = 2;
+    MaleMissionAnalysis analysis = 3;
+}
+
+message MaleMissionAnalysis {
+    string device_id = 1;
+    string mission_type = 2;
+    double mission_success_rate = 3;      // 미션 성공률 (0-100)
+    double mission_effectiveness = 4;      // 미션 효과성 (0-100)
+    double average_mission_duration = 5;   // 평균 미션 수행 시간 (분)
+    repeated MissionRecord mission_records = 6;
+    string timestamp = 7;
+}
+
+message MissionRecord {
+    string mission_id = 1;
+    string status = 2;       // "completed", "failed", "in_progress"
+    double duration_minutes = 3;
+    double success_score = 4; // 0-100
+    string start_time = 5;
+    string end_time = 6;
+}
+
+// Accuracy 분석 관련 메시지들
+message AnalyzeAccuracyRequest {
+    string device_id = 1;
+    string accuracy_type = 2; // "positioning", "target", "sensor"
+    string time_range = 3;
+}
+
+message AnalyzeAccuracyResponse {
+    bool success = 1;
+    string message = 2;
+    AccuracyAnalysis analysis = 3;
+}
+
+message AccuracyAnalysis {
+    string device_id = 1;
+    string accuracy_type = 2;
+    double accuracy_percentage = 3;        // 정확도 퍼센트 (0-100)
+    double average_error_distance = 4;     // 평균 오차 거리 (m)
+    double max_error_distance = 5;         // 최대 오차 거리 (m)
+    repeated AccuracyRecord accuracy_records = 6;
+    string timestamp = 7;
+}
+
+message AccuracyRecord {
+    string record_id = 1;
+    double target_x = 2;
+    double target_y = 3;
+    double actual_x = 4;
+    double actual_y = 5;
+    double error_distance = 6;
+    string timestamp = 7;
+}
+
+// Latency 분석 관련 메시지들
+message AnalyzeLatencyRequest {
+    string device_id = 1;
+    string latency_type = 2; // "command", "network", "processing"
+    string time_range = 3;
+}
+
+message AnalyzeLatencyResponse {
+    bool success = 1;
+    string message = 2;
+    LatencyAnalysis analysis = 3;
+}
+
+message LatencyAnalysis {
+    string device_id = 1;
+    string latency_type = 2;
+    double average_latency_ms = 3;         // 평균 지연시간 (ms)
+    double max_latency_ms = 4;             // 최대 지연시간 (ms)
+    double min_latency_ms = 5;             // 최소 지연시간 (ms)
+    repeated LatencyRecord latency_records = 6;
+    string timestamp = 7;
+}
+
+message LatencyRecord {
+    string record_id = 1;
+    double latency_ms = 2;
+    string command_type = 3;
+    string timestamp = 4;
+}
+
+// 디바이스 종합 점수 관련 메시지들
+message GetDeviceScoreRequest {
+    string device_id = 1;
+    string time_range = 2; // "-1h", "-24h" 등
+}
+
+message GetDeviceScoreResponse {
+    bool success = 1;
+    string message = 2;
+    DeviceScore score = 3;
+}
+
+message DeviceScore {
+    string device_id = 1;
+    double overall_score = 2;              // 종합 점수 (0-100)
+    double performance_score = 3;          // 성능 점수 (0-100)
+    double mission_score = 4;              // 미션 점수 (0-100)
+    double accuracy_score = 5;             // 정확도 점수 (0-100)
+    double latency_score = 6;              // 지연시간 점수 (0-100)
+    double reliability_score = 7;          // 신뢰성 점수 (0-100)
+    string grade = 8;                      // "A+", "A", "B+", "B", "C+", "C", "D", "F"
+    repeated ScoreDetail score_details = 9;
+    string timestamp = 10;
+}
+
+message ScoreDetail {
+    string category = 1;                   // "performance", "mission", "accuracy" 등
+    double score = 2;                      // 카테고리별 점수 (0-100)
+    string description = 3;                // 점수 설명
+    repeated string recommendations = 4;    // 개선 제안사항들
+}
+
+// etcd 기반 Pod 분석 관련 메시지들
+message SyncPodsFromEtcdRequest {
+    string namespace = 1;  // 특정 네임스페이스 (빈 문자열이면 전체)
+}
+
+message SyncPodsFromEtcdResponse {
+    bool success = 1;
+    string message = 2;
+    int32 total_pods = 3;
+    int32 synced_pods = 4;
+    int32 failed_pods = 5;
+    repeated string namespaces = 6;
+    repeated string errors = 7;
+}
+
+message GetEtcdStatusRequest {
+    // etcd 상태 조회는 특별한 파라미터 필요 없음
+}
+
+message GetEtcdStatusResponse {
+    bool success = 1;
+    string message = 2;
+    bool etcd_enabled = 3;
+    EtcdStatusInfo status = 4;
+}
+
+message EtcdStatusInfo {
+    bool connected = 1;
+    string host = 2;
+    int32 port = 3;
+    int32 total_pods_in_etcd = 4;
+    repeated string namespaces_in_etcd = 5;
+}
+
+message CompareEtcdVsK8sRequest {
+    string namespace = 1;  // 비교할 네임스페이스
+}
+
+message CompareEtcdVsK8sResponse {
+    bool success = 1;
+    string message = 2;
+    string namespace = 3;
+    EtcdK8sComparison comparison = 4;
+}
+
+message EtcdK8sComparison {
+    int32 etcd_count = 1;
+    int32 api_count = 2;
+    string sync_status = 3;  // "SYNCED" or "DIFF"
+    repeated string common_pods = 4;
+    repeated string etcd_only = 5;
+    repeated string api_only = 6;
+}
+
+message AnalyzeEtcdPodsPerformanceRequest {
+    string namespace = 1;  // 특정 네임스페이스 (빈 문자열이면 전체)
+}
+
+message AnalyzeEtcdPodsPerformanceResponse {
+    bool success = 1;
+    string message = 2;
+    string analysis_scope = 3;
+    string performance_grade = 4;
+    EtcdPodPerformanceMetrics performance_metrics = 5;
+    EtcdSyncInfo etcd_sync_info = 6;
+    string analysis_timestamp = 7;
+}
+
+message EtcdPodPerformanceMetrics {
+    int32 total_pods = 1;
+    int32 running_pods = 2;
+    double availability_rate = 3;
+    MALEMetricSummary accuracy = 4;
+    MALEMetricSummary latency = 5;
+    MALEMetricSummary energy = 6;
+    MALEMetricSummary overall_score = 7;
+}
+
+message MALEMetricSummary {
+    int32 count = 1;
+    double average = 2;
+    double max = 3;
+    double min = 4;
+}
+
+message EtcdSyncInfo {
+    int32 total_pods = 1;
+    int32 synced_pods = 2;
+    int32 failed_pods = 3;
+}
+
+message GetPodSummaryRequest {
+    // Pod 요약은 특별한 파라미터 필요 없음
+}
+
+message GetPodSummaryResponse {
+    bool success = 1;
+    string message = 2;
+    PodSummary summary = 3;
+}
+
+message PodSummary {
+    int32 total_pods = 1;
+    int32 running_pods = 2;
+    map<string, int32> service_types = 3;
+    double average_male_score = 4;
+    int32 analyzed_pods = 5;
+}
+
+message AnalyzePodDataRequest {
+    string pod_yaml_data = 1;  // Pod YAML 데이터
+}
+
+message AnalyzePodDataResponse {
+    bool success = 1;
+    string message = 2;
+    PodAnalysisResult analysis = 3;
+}
+
+message PodAnalysisResult {
+    string pod_name = 1;
+    string namespace = 2;
+    string service_type = 3;
+    PodMALEMetrics male_metrics = 4;
+    double male_score = 5;
+    PodStatus pod_status = 6;
+    PodResources resources = 7;
+}
+
+message PodMALEMetrics {
+    double accuracy = 1;
+    double latency = 2;
+    double energy = 3;
+}
+
+message PodStatus {
+    string phase = 1;
+    string node_name = 2;
+    bool is_ready = 3;
+}
+
+message PodResources {
+    string cpu_request = 1;
+    string cpu_limit = 2;
+    string memory_request = 3;
+    string memory_limit = 4;
+}
+
+message GetPodsByServiceTypeRequest {
+    string service_type = 1;  // 서비스 타입 (예: "ml-inference")
+}
+
+message GetPodsByServiceTypeResponse {
+    bool success = 1;
+    string message = 2;
+    string service_type = 3;
+    repeated PodInfo pods = 4;
+    int32 total_count = 5;
+    int32 analyzed_count = 6;
+    double average_score = 7;
+}
+
+message PodInfo {
+    string name = 1;
+    string namespace = 2;
+    string status = 3;
+    string node_name = 4;
+    PodMALEMetrics male_metrics = 5;
+    double analysis_score = 6;
+}
+
+// MALE Weight 관련 메시지들
+message GetALEWeightRequest {
+    string device_id = 1;  // 특정 디바이스 (빈 문자열이면 모든 디바이스)
+    repeated string device_ids = 2;  // 여러 디바이스 ID 목록 (옵션)
+}
+
+message GetALEWeightResponse {
+    bool success = 1;
+    string message = 2;
+    int32 total_devices = 3;           // 총 디바이스 수
+    repeated ALEScore ale_scores = 4;  // 여러 디바이스의 ALE 점수 목록
+    repeated string failed_devices = 5; // 점수 계산 실패한 디바이스 목록
+}
+
+// ALE 점수 (실제 디바이스의 Accuracy, Latency, Energy 점수)
+message ALEScore {
+    string device_id = 1;
+    double accuracy_score = 2;       // 정확도 점수 (0-100)
+    double latency_score = 3;        // 지연시간 점수 (0-100, 높을수록 좋음)
+    double energy_score = 4;         // 에너지 점수 (0-100)
+    string calculation_timestamp = 5; // 계산 시간
+}
+
+// ALE 가중치 (점수 계산용 가중치)
+message ALEWeight {
+    string device_id = 1;
+    double accuracy_weight = 2;      // 정확도 가중치 (0-1)
+    double latency_weight = 3;       // 지연시간 가중치 (0-1)
+    double energy_weight = 4;        // 에너지 가중치 (0-1)
+    string description = 5;          // 가중치 설명
+    string last_updated = 6;         // 마지막 업데이트 시간
+}
+
+message SetALEWeightRequest {
+    string device_id = 1;
+    double accuracy_weight = 2;
+    double latency_weight = 3;
+    double energy_weight = 4;
+    string description = 5;
+}
+
+message SetALEWeightResponse {
+    bool success = 1;
+    string message = 2;
+    ALEWeight updated_weights = 3;
+}
+
+message CalculateWeightedScoreRequest {
+    string device_id = 1;
+    double accuracy_value = 2;      // 정확도 값 (0-1000)
+    double latency_value = 3;       // 지연시간 값 (0-1000)
+    double energy_value = 4;        // 에너지 값 (0-1000)
+    string time_range = 5;          // 분석 시간 범위
+}
+
+message CalculateWeightedScoreResponse {
+    bool success = 1;
+    string message = 2;
+    WeightedScoreResult result = 3;
+}
+
+message WeightedScoreResult {
+    string device_id = 1;
+    ALEWeight weights_used = 2;     // 사용된 가중치
+    double accuracy_score = 3;      // 정확도 점수 (0-100)
+    double latency_score = 4;       // 지연시간 점수 (0-100)
+    double energy_score = 5;        // 에너지 점수 (0-100)
+    double weighted_score = 6;      // 가중치 적용된 최종 점수 (0-100)
+    string score_grade = 7;         // 점수 등급 (A+, A, B+, B, C+, C, D, F)
+    string calculation_timestamp = 8;
+}
