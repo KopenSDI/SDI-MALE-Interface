@@ -26,14 +26,14 @@ ETRI는 LLM으로 다음을 생성한다:
    - **(권장)** `MaleWorkload` CR — 워크로드와 분리된 선언 → [03-cr-argument-schema](03-cr-argument-schema.md)
    - **(간이)** 파드 라벨/주석에 `male.keti.dev/{accuracy,latency,energy}` 직접 부착
 
-## 3. 전달 방식 (Transport) — 협의 항목
+## 3. 전달 방식 (Transport)
 
-| 방식 | 설명 | 상태 |
+**현재는 HTTP(API Server)로 연동하고, 추후 GitOps(Argo CD) 연동으로 전환**한다. (GitOps는 ETRI가 담당)
+
+| 단계 | 방식 | 설명 |
 | --- | --- | --- |
-| **GitOps (Argo CD)** | ETRI가 Git 리포에 YAML push → Argo CD Agent가 클러스터에 자동 동기화 | 협의자료 기준 유력안 |
-| **HTTP (API Server)** | ETRI가 API Server 엔드포인트로 직접 POST | 대안 |
-
-> 협의자료: *"오케스트레이션 내 Git 변경 감지 Agent 배포(Argo CD) → GitOps"* 로 가닥. 최종 채널 확정은 협의 필요.
+| **현재** | **HTTP (API Server)** | ETRI가 API Server 엔드포인트로 JSON POST |
+| **향후** | **GitOps (Argo CD)** | ETRI가 Git 리포에 매니페스트 push → Argo CD가 클러스터에 자동 동기화 |
 
 ## 4. 핵심 원칙
 
