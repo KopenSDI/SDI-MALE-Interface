@@ -3,7 +3,6 @@ import logging
 from typing import Optional
 from influxdb_client import InfluxDBClient
 
-# admin 비밀번호 ***REMOVED***
 INFLUX_URL = os.getenv("INFLUX_URL", "http://influxdb.tbot-monitoring.svc.cluster.local:8086")
 INFLUX_TOKEN = os.getenv("INFLUX_TOKEN", "")  # sanitized: set via env
 INFLUX_ORG    = "keti"
