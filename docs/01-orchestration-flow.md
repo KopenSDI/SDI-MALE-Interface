@@ -27,6 +27,8 @@ IaC Provider ──▶ API Server ──▶ MALE Operator ──▶ Analysis Eng
 
 ## ② CRD 등록 — `persistMALE` / `registerCRD` / `createCRInstance` (API Server → MALE Operator)
 
+> **MALE Operator** = 슬라이드 2의 MALE 관리 모듈. Kubernetes Operator(Kubebuilder)로서 **CRD(`MaleWorkload`/`MalePolicy`) + Reconcile 컨트롤러 + Mutating Webhook** 로 구성된다. (CR API 그룹: `male.keti.dev/v1alpha1`) — MALE 요구사항의 **등록·중요도 재정의·워크로드 주입(patch)** 을 담당한다.
+
 - 전달된 선언이 클러스터에 적용되면, KETI의 **MALE Operator**가 `MaleWorkload`(그리고 정책은 `MalePolicy`) **CR 인스턴스**로 저장한다.
 - **MALE 관점**: A‑L‑E 값이 쿠버네티스 **CustomResource로 영속화**되어, 이후 단계들이 참조할 수 있는 "요구사항의 단일 출처(source of truth)"가 된다.
 
