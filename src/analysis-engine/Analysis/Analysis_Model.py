@@ -730,7 +730,6 @@ class AnalysisModel:
             return "F"
     
 
-    # 점수 별 피드백 같은 로그를 남기기 위해서 작성 -기철
     def _generate_score_details(self, scores: dict, device) -> list:
      
         details = []

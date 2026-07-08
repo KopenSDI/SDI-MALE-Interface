@@ -3,8 +3,6 @@ import json
 import logging
 from datetime import datetime
 from SDI_Devcie.SDV_Device import SDV_Device
-# from .Pod_Analyzer import PodAnalyzer, PodData  # 파일 없음 - 주석 처리
-# from .Etcd_Analyzer import EtcdAnalyzer  # 파일 없음 - 주석 처리
 from .ALE_Weight_Manager import ALEWeightManager
 
 class AnalysisController:
@@ -177,10 +175,6 @@ class AnalysisController:
             }
             
         # 향후 확장 가능한 다른 SD* 클래스들
-        # elif any(keyword in device_id_upper for keyword in ['ROBOT_ARM', 'MANIPULATOR']):
-        #     return {'class_type': 'SDM', 'device_type': 'manipulator', ...}
-        # elif any(keyword in device_id_upper for keyword in ['SENSOR', 'CAMERA']):  
-        #     return {'class_type': 'SDS', 'device_type': 'sensor', ...}
         
         else:
             # 기본값: 일반 SDI 디바이스
@@ -244,7 +238,6 @@ class AnalysisController:
     
     def _get_location_for_bot(self, bot_id: str) -> str:
         """디바이스 ID를 기반으로 위치 정보를 결정"""
-        # TODO: 실제로는 별도 설정이나 데이터베이스에서 가져와야 함
         location_map = {
             "TURTLEBOT3-Burger-1": "Lab-A",
             "TURTLEBOT3-Burger-2": "Lab-B", 
@@ -589,7 +582,6 @@ class AnalysisController:
     def _analyze_battery_health(self, device, battery_level: float) -> str:
         """디바이스 클래스별 배터리 건강 상태 분석"""
         device_class = type(device).__name__
-        # 일단 기준을 하드코딩으로 함 정책적이나 의미적으로 분류가 되야함-기철 
         if device_class == "SDV_Device":
             # 차량형 디바이스 배터리 기준
             if battery_level > 60:
@@ -626,7 +618,6 @@ class AnalysisController:
             
         device_class = type(device).__name__
         
-        # 일단은 단순계산으로 하드코딩됨 수정해야함 연료가 전기라고 만 한정하지않기위해서 ..-기철
         if device_class == "SDV_Device":
             consumption_rate = 45.0  
         elif device_class == "SDA_Device":
@@ -635,7 +626,6 @@ class AnalysisController:
             consumption_rate = 50.0  
             
         return battery_wh / consumption_rate  
-
 
 
     # MALE Weight 관리 함수들 ////////////

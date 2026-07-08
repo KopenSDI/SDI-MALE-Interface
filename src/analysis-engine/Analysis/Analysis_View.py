@@ -10,7 +10,6 @@ import os
 import grpc
 from concurrent import futures
 
-# gRPC를 위한 임포트 - 실제 프로젝트의 경로에 맞게 수정해야 할 수 있습니다.
 # 예: from Protos import analysis_pb2, analysis_pb2_grpc
 # 이 부분은 현재 파일 구조를 알 수 없어 일반적인 형태로 작성했습니다.
 # 만약 gRPC 서비스 클래스가 다른 곳에 있다면 해당 클래스를 임포트해야 합니다.
@@ -23,8 +22,6 @@ class AnalysisServicer: # (analysis_pb2_grpc.AnalysisServiceServicer):
     
     # 여기에 gRPC 요청을 처리하는 실제 메서드들을 구현합니다.
     # 예: def AnalyzeDevice(self, request, context):
-    #        ...
-    #        return analysis_pb2.AnalysisResponse(...)
 
 
 # ========================================================================================
@@ -43,10 +40,8 @@ class AnalysisView:
             self.grpc_server = grpc.server(futures.ThreadPoolExecutor(max_workers=max_workers))
             
             # gRPC 서비스 구현체를 서버에 추가합니다.
-            # 아래 라인은 실제 프로젝트의 Servicer와 pb2_grpc 모듈에 맞게 수정해야 합니다.
             # analysis_pb2_grpc.add_AnalysisServiceServicer_to_server(
             #     AnalysisServicer(self.controller), self.grpc_server
-            # )
             
             self.grpc_server.add_insecure_port(f'[::]:{port}')
             self.grpc_server.start()

@@ -10,7 +10,6 @@ INFLUX_TOKEN = os.getenv("INFLUX_TOKEN", "")  # sanitized: set via env
 INFLUX_ORG = "keti"
 INFLUX_BUCKET = "turtlebot"
 
-#Edit 필요- 터틀봇 초기 정보를 읽어드림  수정해야할것 -> 초기 인플럭스 디비에서 읽어 들이게해야함 
 BOTS = ["TURTLEBOT3-Burger-1", "TURTLEBOT3-Burger-2"]
 
 class InfluxService:

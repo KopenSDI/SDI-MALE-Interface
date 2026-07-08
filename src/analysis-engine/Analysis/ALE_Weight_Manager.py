@@ -12,7 +12,6 @@ class ALEWeightManager:
         self.LATENCY_REFERENCE_MS = 500.0   # 이 지연(ms) 이상이면 지연 점수 0으로 수렴
         self.ENERGY_FULL_WH = 500.0         # 완충 기준 배터리 용량(wh)
         self._init_default_weights()
-    # 가중치 초기화 -- 파이썬이라 안하면 생성이안됨
     def _init_default_weights(self):
       
         self.ale_weights['default'] = {
@@ -130,7 +129,6 @@ class ALEWeightManager:
                 'weights': None
             }
 
-    # 값 이상한거 넣는지 확인 ...
     def _validate_weights(self, accuracy_weight: float, latency_weight: float, 
                          energy_weight: float) -> Dict[str, Any]:
         try:
@@ -151,20 +149,8 @@ class ALEWeightManager:
                     'valid': False,
                     'message': 'energy_weight는 0과 1 사이의 값이어야 합니다'
                 }
-            # # 없어도 될듯하여 주석처리 함 개별가중치로 계싼함
             # # A+L+E 가중치 합은 1보다 넘지않게게
-            # total_weight = accuracy_weight + latency_weight + energy_weight
-            # if not (0.9 <= total_weight <= 1.1):
-            #     return {
-            #         'valid': False,
-            #         'message': f'가중치 합이 1.0에 가까워야 합니다 (현재: {total_weight:.3f})'
-            #     }
             
-            # # 없어도 될듯하여 주석처리 함 
-            # if total_weight != 1.0:
-            #     accuracy_weight = accuracy_weight / total_weight
-            #     latency_weight = latency_weight / total_weight  
-            #     energy_weight = energy_weight / total_weight
             
             return {
                 'valid': True,
@@ -209,7 +195,6 @@ class ALEWeightManager:
         }
     
     # MALE 값이 어떻게 들어오는지 모르겠으나 0~1000사이라고 했을때 스코어링 점수를 그대로 반영하기엔 너무크기때문에 100~점대로 변환
-    #A = 높을수록 좋음 L 낮을수록 좋음 , E 높을 수록 좋음 으로 정의함 -기철철
     def _convert_metrics_to_scores(self, accuracy_value: float, latency_value: float, 
                                   energy_value: float) -> Dict[str, float]:
         accuracy_score = min(100.0, (accuracy_value / 1000.0) * 100.0)

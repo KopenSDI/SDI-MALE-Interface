@@ -203,7 +203,4 @@ response = stub.SetALEWeight(request)
 
 ---
 
-**작성일**: 2024년 1월 20일  
-**작성자**: 기철  
-**버전**: v3.0 (ALE 점수 시스템 완성)
 
