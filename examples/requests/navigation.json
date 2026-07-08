@@ -1,0 +1,9 @@
+{
+  "mission": "navigation-path-planning",
+  "container_name": "planner",
+  "image": "registry.example.com/sdi-navigation:v0.1.0",
+  "accuracy": 0.4,
+  "latency": 0.5,
+  "energy": 0.1,
+  "labels": { "app": "navigation", "tier": "edge" }
+}
