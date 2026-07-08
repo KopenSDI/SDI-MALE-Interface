@@ -3,7 +3,7 @@ import logging
 from typing import Optional
 from influxdb_client import InfluxDBClient
 
-# 일단 로컬에서도 테스트가 되게끔 해놨는데, 테스트 성공 이후에는 아래 주석 풀고 컨테이너 올려야 합니당
+
 # INFLUX_URL    = os.getenv("INFLUX_URL", "http://influxdb.tbot-monitoring.svc.cluster.local:8086")
 # INFLUX_TOKEN  = os.getenv("INFLUX_TOKEN")
 # INFLUX_ORG    = os.getenv("INFLUX_ORG", "keti")
