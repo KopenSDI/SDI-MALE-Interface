@@ -1,0 +1,14 @@
+{
+  "mission": "object-detection",
+  "container_name": "detector",
+  "image": "registry.example.com/sdi-detector:v0.1.0",
+  "namespace": "sdi-demo",
+  "accuracy": 0.3,
+  "latency": 0.5,
+  "energy": 0.2,
+  "criticality": "B",
+  "rt_period": 50,
+  "rt_wcet": 20,
+  "rt_deadline": 50,
+  "labels": { "app": "object-detection", "tier": "edge" }
+}
