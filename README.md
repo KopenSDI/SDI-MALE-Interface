@@ -3,7 +3,6 @@
 > **목적** — ETRI(IaC Provider)와 KETI(SDI Orchestration)의 **연동 경계와 계약(interface contract)** 을 정의하고, 전달된 워크로드에서 **MALE(A‑L‑E)이 어떻게 사용되는지**를 설명한다.
 > 본 저장소는 ETRI 공유용이며, KETI 내부 구현 세부는 제외하고 **경계(API Server)와 규격**에 집중한다.
 
-이 문서는 협의자료(슬라이드 2 "MALE 기반 오케스트레이션 동작 구조도")의 **후속 상세 설명**으로 작성되었다.
 
 ---
 
