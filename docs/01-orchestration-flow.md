@@ -1,86 +1,92 @@
-# MALE 기반 오케스트레이션 동작 흐름 (슬라이드 2 상세 설명)
+# MALE 기반 오케스트레이션 동작 흐름
 
-> 본 문서는 협의자료 슬라이드 2 *"MALE 기반 오케스트레이션 동작 구조도(UML Sequence)"* 의 후속 설명이다.
-> 각 단계에서 **MALE(A‑L‑E)이 어떻게 소비·반영되는지**를 중심으로 기술한다.
+ETRI가 만든 워크로드 선언이 KETI에 전달된 뒤, MALE(A‑L‑E)이 반영되어 스케줄링·운영되기까지의 순서를 정리한다. 각 단계에서 MALE 값이 어떻게 쓰이는지에 초점을 둔다.
 
----
-
-## 전체 파이프라인
+전체 순서:
 
 ```
-① 선언 전달        ② CRD 등록         ③ 중요도 재정의       ④ 점수 산출        ⑤ 워크로드 패치      ⑥ 스케줄링          ⑦ 운영(Edge)
-IaC Provider ──▶ API Server ──▶ MALE Operator ──▶ Analysis Engine ──▶ MALE Operator ──▶ Scheduler ──▶ Migration
- (ETRI)          applyK8sYaml     persistMALE       getALEweight         MALEpatch          schedule       (SDx)
-                                  createCRInstance   decideALE            (webhook)          NodeSelect
+1. 선언 전달      2. CR 등록        3. 중요도 판정      4. 점수 계산        5. 워크로드 주입     6. 스케줄링      7. 운영
+  ETRI       →  MALE Operator  →  MALE Operator  →  Analysis Engine  →  MALE Operator   →  Scheduler   →  Migration 등
+ (API Server 경유)
 ```
 
-각 단계와 MALE의 역할은 다음과 같다.
+> 참고: 여기서 "MALE Operator"는 Kubernetes Operator다. CRD(`MaleWorkload`/`MalePolicy`) + Reconcile 컨트롤러 + Mutating Webhook로 구성되며, API 그룹은 `male.keti.dev/v1alpha1`. MALE 요구사항의 등록·중요도 재정의·워크로드 주입을 담당한다.
 
 ---
 
-## ① 선언 전달 — `applyK8sYaml` (ETRI → API Server)
+## 1. 워크로드 선언 전달 (ETRI → API Server)
 
-- **주체**: ETRI(IaC Provider). LLM으로 워크로드 YAML을 생성.
-- **내용**: 워크로드(Deployment/Pod) + **MALE 요구사항**(`MaleWorkload` CR 또는 `male.keti.dev/*` 주석).
-- **전달**: GitOps(Argo CD) 또는 HTTP(API Server). → [02-etri-boundary](02-etri-boundary.md)
-- **MALE 관점**: 이 단계에서 A‑L‑E 가중치(`importance.accuracy/latency/energy`)와 미션이 **최초로 시스템에 진입**한다. **여기가 ETRI가 MALE 값을 넣는 유일한 지점**이다.
+ETRI가 워크로드(Deployment/Pod)와 MALE 요구사항을 담은 선언을 만들어 KETI에 넘긴다. MALE 요구사항은 `MaleWorkload` CR로 주거나, 파드에 `male.keti.dev/*` 주석으로 직접 붙일 수 있다. 전달은 GitOps(Argo CD)나 HTTP로 한다([docs/02](02-etri-boundary.md) 참고).
 
-## ② CRD 등록 — `persistMALE` / `registerCRD` / `createCRInstance` (API Server → MALE Operator)
+이 단계가 **ETRI가 A‑L‑E 가중치와 미션 정보를 시스템에 넣는 유일한 지점**이다. 이후 단계는 모두 KETI가 이 값을 활용하는 과정이다.
 
-> **MALE Operator** = 슬라이드 2의 MALE 관리 모듈. Kubernetes Operator(Kubebuilder)로서 **CRD(`MaleWorkload`/`MalePolicy`) + Reconcile 컨트롤러 + Mutating Webhook** 로 구성된다. (CR API 그룹: `male.keti.dev/v1alpha1`) — MALE 요구사항의 **등록·중요도 재정의·워크로드 주입(patch)** 을 담당한다.
+## 2. CR 등록 (API Server → MALE Operator)
 
-- 전달된 선언이 클러스터에 적용되면, KETI의 **MALE Operator**가 `MaleWorkload`(그리고 정책은 `MalePolicy`) **CR 인스턴스**로 저장한다.
-- **MALE 관점**: A‑L‑E 값이 쿠버네티스 **CustomResource로 영속화**되어, 이후 단계들이 참조할 수 있는 "요구사항의 단일 출처(source of truth)"가 된다.
+전달된 선언이 클러스터에 적용되면, MALE Operator가 이를 `MaleWorkload`(정책은 `MalePolicy`) CR로 저장한다. 이렇게 등록된 CR이 이후 단계들이 참조하는 요구사항의 기준점이 된다.
 
-## ③ 중요도 재정의 — `decideALE` / Mixed‑Criticality (MALE Operator)
+## 3. 중요도 판정 (MALE Operator)
 
-- MALE Operator가 A‑L‑E 패턴을 보고 **혼합 중요도(Mixed‑Criticality)** 를 재정의한다.
-- **실제 규칙 예시**(자율주행): `A ≥ 0.6 && L ≥ 0.3` → 사용자가 준 중요도 `A(Best‑Effort)`를 **`C(Safety‑Critical)`로 승격**.
-- **MALE 관점**: A‑L‑E 가중치가 **정적인 숫자에서 → 운영 정책(중요도 등급)으로 변환**되는 핵심 단계. 이 등급이 스케줄링 우선순위·자원 보장에 영향.
+MALE Operator가 A‑L‑E 값을 보고 워크로드의 **혼합 중요도(Mixed‑Criticality)** 를 정한다. 사용자가 준 등급을 그대로 쓰지 않고, A‑L‑E 패턴에 따라 재정의할 수 있다.
 
-## ④ 점수 산출 — `getALEweight` / `pullAnalysisResult` (Scheduler ↔ Analysis Engine)
+예를 들어 정확도와 지연이 모두 높게 요구되는 자율주행 워크로드(`accuracy ≥ 0.6` 이고 `latency ≥ 0.3`)는, 사용자가 낮은 등급으로 냈더라도 **안전 필수(Safety‑Critical)** 등급으로 올린다. 이 등급이 스케줄링 우선순위와 자원 보장에 반영된다.
 
-- **Analysis Engine(MALE Profiler)** 이 디바이스/노드별 **A‑L‑E 점수(0~100)** 를 계산한다.
-  - Accuracy: 모델·HW 성능 기반, Latency: 지역성(locality)·응답시간 기반, Energy: 전력/배터리 기반.
-- 스케줄러가 `getALEweight` 로 이 점수를 조회한다.
-- **MALE 관점**: ETRI가 준 **가중치(중요도)** 와 KETI가 측정한 **점수(성능)** 가 결합되어 `weighted_score = Σ(score × weight)` 형태의 **가중 점수**로 산출된다.
+## 4. 점수 계산 (Analysis Engine)
 
-> 참고: 실측 A/L/E 데이터를 수집하는 파이프라인은 KETI 내부 사항이며, 데이터가 없을 때는 중립값으로 폴백한다. ETRI는 값을 넣기만 하면 되고, 측정·점수화는 KETI가 담당.
+Analysis Engine이 노드/디바이스별로 A‑L‑E 점수(0~100)를 계산한다.
 
-## ⑤ 워크로드 패치 — `MALEpatch` (MALE Operator, Mutating Webhook)
+- Accuracy: 모델·하드웨어 성능
+- Latency: 위치 근접성(locality)·응답시간
+- Energy: 전력/배터리 여유
 
-- MALE Operator의 **Mutating Admission Webhook** 이 워크로드에 A‑L‑E 점수/중요도/스케줄링 힌트를 **주석·환경변수로 주입**한다.
-- **MALE 관점**: A‑L‑E 정보가 **실제 파드 스펙에 반영**되어 스케줄러·런타임이 인식할 수 있는 형태가 된다.
+여기서 ETRI가 준 **가중치**와 KETI가 측정한 **점수**가 합쳐져 `가중 점수 = Σ(점수 × 가중치)` 형태로 계산된다. 실측 데이터가 아직 없으면 중립값으로 대체한다(측정·수집은 KETI 몫이라 ETRI가 신경 쓸 부분은 아니다).
 
-## ⑥ 스케줄링 — `schedule` / `NodeSelect` (SDI Scheduler)
+## 5. 워크로드 주입 (MALE Operator, Mutating Webhook)
 
-- 커스텀 스케줄러(`sdi-scheduler`, intent‑driven 플러그인)가 **MALE Score 기반 노드 선택**을 수행:
-  1. **MALE Score** 산출
-  2. **Filtering** (Cloud / Edge / Device 후보 필터)
-  3. **Re‑Scoring** (모니터링 데이터 반영, 선택)
-  4. **NodeSelect Algorithm**
-     - Accuracy → HW performance
-     - Latency → Locality Affinity
-     - Energy → Power Budget Affinity
-- **MALE 관점**: A‑L‑E 가중치가 **최종 배치(노드 선택)** 를 결정한다. 정확도 우선 워크로드는 고성능 노드로, 지연 우선 워크로드는 근거리(zone/region) 노드로 향한다.
+MALE Operator의 Mutating Webhook이 워크로드가 실제로 만들어질 때, 계산된 점수·중요도·스케줄링 힌트를 파드 스펙에 주석/환경변수로 끼워 넣는다. 이 과정을 거쳐야 스케줄러와 런타임이 MALE 정보를 인식할 수 있다.
 
-## ⑦ 운영 — `par [Migration] / [Autoscaling]` (SDx Manager, Edge)
+## 6. 스케줄링 (SDI Scheduler)
 
-- 배치 후 운영 단계에서 리소스 압박/중요도 변화에 따라 **마이그레이션**(체크포인팅 기반 무중단 이전) 등이 수행된다.
-- **MALE 관점**: 중요도(criticality)와 리소스 상태를 근거로 **동적 재배치**가 일어난다. (오토스케일링 연동은 확장 예정 영역)
+커스텀 스케줄러가 MALE 점수를 기준으로 노드를 고른다. 대략 다음 순서다.
+
+1. MALE 점수 산출
+2. 후보 필터링 (Cloud / Edge / Device 중 어디에 둘지)
+3. 재점수 (모니터링 데이터가 있으면 반영)
+4. 최종 노드 선택 — Accuracy는 고성능 노드, Latency는 근거리 노드, Energy는 전력 여유 노드로 향하게
+
+정확도 우선 워크로드는 성능 좋은 노드로, 지연 우선 워크로드는 가까운 노드로 배치되는 식이다.
+
+## 7. 운영 (Migration 등)
+
+배치된 뒤에도 리소스 압박이나 중요도 변화에 따라 워크로드를 다른 노드로 옮기는(마이그레이션) 등의 운영이 이어진다. 이때도 중요도와 리소스 상태가 판단 근거가 된다.
 
 ---
 
-## 요약: "MALE는 어디서, 어떻게 쓰이나"
+## 요약: MALE은 어디서 어떻게 쓰이나
 
-| 단계 | MALE의 사용 방식 |
+| 단계 | MALE의 사용 |
 | --- | --- |
-| ① 전달 | ETRI가 A‑L‑E 가중치 + 미션을 선언에 담아 주입 |
-| ② CRD | A‑L‑E가 `MaleWorkload` CR로 영속화 |
-| ③ 재정의 | A‑L‑E 패턴 → 혼합 중요도(등급)로 변환 |
-| ④ 점수 | 가중치 × 측정 점수 = 가중 점수 |
-| ⑤ 패치 | 파드에 점수/중요도 주입 |
-| ⑥ 스케줄 | A‑L‑E → 노드 선택(성능/지역성/전력) |
-| ⑦ 운영 | 중요도 기반 재배치 |
+| 1. 선언 전달 | ETRI가 A‑L‑E 가중치 + 미션을 선언에 담아 넣음 |
+| 2. CR 등록 | A‑L‑E가 `MaleWorkload` CR로 저장됨 |
+| 3. 중요도 판정 | A‑L‑E 패턴 → 중요도 등급으로 변환 |
+| 4. 점수 계산 | 가중치 × 측정 점수 = 가중 점수 |
+| 5. 주입 | 점수·중요도를 파드에 삽입 |
+| 6. 스케줄링 | A‑L‑E 기준으로 노드 선택 |
+| 7. 운영 | 중요도 기반 재배치 |
 
-> **ETRI가 알아야 할 범위**: ①~② (무엇을 어떤 스키마로 넣는가). ③~⑦은 KETI가 그 값을 **어떻게 활용하는지**에 대한 참고 설명이다.
+**ETRI가 직접 관여하는 범위는 1~2단계(무엇을 어떤 형식으로 넣는가)까지다.** 3단계 이후는 KETI가 그 값을 어떻게 활용하는지에 대한 참고 설명이다.
+
+---
+
+## (부록) 협의자료 시퀀스 다이어그램과의 대응
+
+협의자료의 시퀀스 다이어그램을 함께 보는 경우, 위 단계와 다이어그램의 메시지는 다음과 같이 대응한다. (다이어그램이 없어도 위 본문만으로 이해된다.)
+
+| 본 문서 단계 | 시퀀스 다이어그램 메시지 |
+| --- | --- |
+| 1. 선언 전달 | `applyK8sYaml` |
+| 2. CR 등록 | `persistMALE` / `registerCRD` / `createCRInstance` |
+| 3. 중요도 판정 | `decideALE` / `sendMixedCriticality` |
+| 4. 점수 계산 | `getALEweight` / `pullAnalysisResult` |
+| 5. 워크로드 주입 | `MALEpatch` |
+| 6. 스케줄링 | `schedule` / NodeSelect |
+| 7. 운영 | `par [Migration] / [Autoscaling]` |

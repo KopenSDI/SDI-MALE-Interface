@@ -30,10 +30,10 @@ ETRI는 LLM으로 다음을 생성한다:
 
 | 방식 | 설명 | 상태 |
 | --- | --- | --- |
-| **GitOps (Argo CD)** | ETRI가 Git 리포에 YAML push → Argo CD Agent가 클러스터에 자동 동기화 | 슬라이드 6 기준 유력안 |
+| **GitOps (Argo CD)** | ETRI가 Git 리포에 YAML push → Argo CD Agent가 클러스터에 자동 동기화 | 협의자료 기준 유력안 |
 | **HTTP (API Server)** | ETRI가 API Server 엔드포인트로 직접 POST | 대안 |
 
-> 슬라이드 6: *"오케스트레이션 내 Git 변경 감지 Agent 배포(Argo CD) → GitOps"* 로 가닥. 최종 채널 확정은 협의 필요.
+> 협의자료: *"오케스트레이션 내 Git 변경 감지 Agent 배포(Argo CD) → GitOps"* 로 가닥. 최종 채널 확정은 협의 필요.
 
 ## 4. 핵심 원칙
 
