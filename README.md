@@ -28,7 +28,7 @@
 
 | 문서 | 내용 |
 | --- | --- |
-| [`docs/01-orchestration-flow.md`](docs/01-orchestration-flow.md) | **★ 슬라이드 2 후속 설명** — MALE 기반 오케스트레이션 전체 흐름과 각 단계에서 MALE이 사용되는 방식 |
+| [`docs/01-orchestration-flow.md`](docs/01-orchestration-flow.md) | **흐름 설명** — MALE 기반 오케스트레이션 전체 흐름과 각 단계에서 MALE이 사용되는 방식 |
 | [`docs/02-etri-boundary.md`](docs/02-etri-boundary.md) | ETRI↔KETI 연동 경계, 전달 방식(GitOps/HTTP), ETRI 산출물 정의 |
 | [`docs/03-cr-argument-schema.md`](docs/03-cr-argument-schema.md) | **계약** — `MaleWorkload` CR / `male.keti.dev/*` 주석 스키마 (필드·의미·예시) |
 | [`docs/04-open-issues.md`](docs/04-open-issues.md) | 협의가 필요한 미결 항목 (네이밍·값 의미·전달채널 등) |
@@ -38,14 +38,14 @@
 
 MALE이 실제로 어떻게 소비·반영되는지 확인할 수 있는 참조 구현(KETI). *vendor·가상환경·시크릿은 제외, InfluxDB 토큰 등은 환경변수로 정화됨.*
 
-| 경로 | 내용 | 슬라이드 2 단계 |
+| 경로 | 내용 | 흐름 |
 | --- | --- | --- |
-| [`src/api-server/`](src/api-server/) | **경계 모듈** — `sdi_manifest_bridge` (요구사항 보강·검증·apply) | ① 선언 전달 |
-| [`src/male-operator/`](src/male-operator/) | **MALE Operator** — CRD 타입(`maleworkload_types.go`), 컨트롤러(reconcile), **Mutating Webhook**(중요도 재정의·MALEpatch) | ②③⑤ |
-| [`src/analysis-engine/`](src/analysis-engine/) | **Analysis Engine** — `ALE_Weight_Manager`(A‑L‑E 점수·가중합), 스코어링 로직 | ④ 점수 산출 |
-| [`crds/`](crds/) | `MaleWorkload` / `MalePolicy` CRD 정의(YAML) — 계약 스키마 | ② |
+| [`src/api-server/`](src/api-server/) | **경계 모듈** — `sdi_manifest_bridge` (요구사항 보강·검증·apply) |  선언 전달 |
+| [`src/male-operator/`](src/male-operator/) | **MALE Operator** — CRD 타입(`maleworkload_types.go`), 컨트롤러(reconcile), **Mutating Webhook**(중요도 재정의·MALEpatch) |  |
+| [`src/analysis-engine/`](src/analysis-engine/) | **Analysis Engine** — `ALE_Weight_Manager`(A‑L‑E 점수·가중합), 스코어링 로직 |  점수 산출 |
+| [`crds/`](crds/) | `MaleWorkload` / `MalePolicy` CRD 정의(YAML) — 계약 스키마 |  |
 
-> 각 모듈이 슬라이드 2의 어느 단계에 해당하는지는 [`docs/01-orchestration-flow.md`](docs/01-orchestration-flow.md) 참조.
+> 각 모듈이  어느 단계에 해당하는지는 [`docs/01-orchestration-flow.md`](docs/01-orchestration-flow.md) 참조.
 > 코드 내 InfluxDB 접속 정보는 `INFLUX_TOKEN`, `INFLUX_URL` 환경변수로 주입한다(하드코딩 제거됨).
 
 ---
